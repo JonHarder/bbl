@@ -1,6 +1,9 @@
+use crate::reference::Reference;
+use clap::{Parser, Subcommand};
 use std::str::FromStr;
 
-use clap::{Parser, Subcommand};
+mod edit_distance;
+mod reference;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -35,94 +38,23 @@ enum Command {
     },
     /// (Re)index corpus.
     Index,
-}
-
-#[derive(Debug)]
-struct Chapter(u32);
-
-#[derive(Debug)]
-struct Verse(u32);
-
-impl FromStr for Verse {
-    type Err = PassageParseError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let v: u32 = s
-            .parse()
-            .map_err(|err| PassageParseError::BadFormat(format!("{:?}", err)))?;
-        Ok(Verse(v))
-    }
-}
-
-impl FromStr for Chapter {
-    type Err = PassageParseError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let v: u32 = s
-            .parse()
-            .map_err(|err| PassageParseError::BadFormat(format!("{:?}", err)))?;
-        Ok(Chapter(v))
-    }
-}
-
-/// Defines a passage which contains a start reference, and optionally an
-/// end reference
-#[derive(Debug)]
-struct Passage {
-    start_book: String,
-    start_chapter: Option<Chapter>,
-    start_verse: Option<Verse>,
-}
-
-#[derive(Debug)]
-enum PassageParseError {
-    MissingBook,
-    MissingChapter,
-    BadFormat(String),
-}
-
-impl Passage {
-    fn parse(input: Vec<String>) -> Result<Self, PassageParseError> {
-        if input.is_empty() {
-            return Err(PassageParseError::MissingBook);
-        }
-        let book = input[0].to_string();
-        match input.get(1) {
-            Some(rest) => {
-                if let Some((chapter, rest)) = rest.split_once(":") {
-                    let chapter = chapter.parse()?;
-                    let verse = rest.parse()?;
-                    Ok(Passage {
-                        start_book: book,
-                        start_chapter: Some(chapter),
-                        start_verse: Some(verse),
-                    })
-                } else {
-                    let chapter = rest.parse()?;
-                    Ok(Passage {
-                        start_book: book,
-                        start_chapter: Some(chapter),
-                        start_verse: None,
-                    })
-                }
-            }
-            None => Ok(Passage {
-                start_book: book,
-                start_chapter: None,
-                start_verse: None,
-            }),
-        }
-    }
+    /// Download Specified Bible version.
+    Download,
 }
 
 fn execute(command: Command) {
     match command {
         Command::Reference { passage } => {
-            let p = Passage::parse(passage);
-            println!("{p:?}");
+            let input = passage.join(" ");
+            let reference = Reference::from_str(&input);
+            match reference {
+                Ok(reference) => println!("{reference}"),
+                Err(err) => println!("there was an error looking up your reference: {err:?}"),
+            }
         }
         Command::Search { .. } => todo!(),
         Command::Index => todo!(),
+        Command::Download => todo!(),
     }
 }
 
