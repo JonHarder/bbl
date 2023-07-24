@@ -3,6 +3,8 @@ use std::{
     str::FromStr,
 };
 
+use regex::Regex;
+
 use crate::edit_distance::edit_distance;
 
 #[derive(Debug, Clone)]
@@ -88,6 +90,7 @@ impl Display for Reference {
 #[derive(Debug)]
 pub enum ReferenceError {
     UnknownBook,
+    InvalidReferenceFormat(&'static str),
 }
 
 #[derive(PartialEq, Eq)]
@@ -114,7 +117,7 @@ fn find_closest<'a, T: ToString + Display>(
             } else {
                 input.to_string()
             };
-            (edit_distance(&input, &option), o)
+            (edit_distance(&input, &option, None), o)
         })
         .collect();
     option_distances.sort_by(|(d1, _), (d2, _)| d1.total_cmp(d2));
@@ -148,11 +151,44 @@ impl FromStr for Reference {
     type Err = ReferenceError;
 
     fn from_str(value: &str) -> Result<Self, Self::Err> {
-        let book = Book::from_str(value)?;
-        Ok(Reference {
-            book,
-            chapter: None,
-            verse: None,
-        })
+        let r_book_chapter_verse =
+            Regex::new(r"^(?<book>\d?\s?[a-zA-Z]+) (?<chapter>\d+):(?<verse>\d+)$")
+                .expect("this to be valid regex");
+        let r_book_chapter = Regex::new(r"^(?<book>\d?\s?[a-zA-Z]+) (?<chapter>\d+)$")
+            .expect("this to be valid regex");
+        let r_book = Regex::new(r"^(?<book>\d?\s?[a-zA-Z]+)$").expect("this to be valid regex");
+
+        if let Some(captures) = r_book_chapter_verse.captures(value) {
+            let (_, [book, chapter, verse]) = captures.extract();
+            let book = Book::from_str(book)?;
+            let chapter = chapter.parse().unwrap();
+            let verse = verse.parse().unwrap();
+            Ok(Reference {
+                book,
+                chapter: Some(chapter),
+                verse: Some(verse),
+            })
+        } else if let Some(captures) = r_book_chapter.captures(value) {
+            let (_, [book, chapter]) = captures.extract();
+            let book = Book::from_str(book)?;
+            let chapter = chapter.parse().unwrap();
+            Ok(Reference {
+                book,
+                chapter: Some(chapter),
+                verse: None,
+            })
+        } else if let Some(captures) = r_book.captures(value) {
+            let (_, [book]) = captures.extract();
+            let book = Book::from_str(book)?;
+            Ok(Reference {
+                book,
+                chapter: None,
+                verse: None,
+            })
+        } else {
+            Err(ReferenceError::InvalidReferenceFormat(
+                "Failed to parse reference",
+            ))
+        }
     }
 }

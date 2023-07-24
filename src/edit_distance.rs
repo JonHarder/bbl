@@ -1,7 +1,7 @@
 const LEN_WEIGHT: f32 = 0.9;
 
 /// Edit distance algorithm based on https://en.wikipedia.org/wiki/Damerau%E2%80%93Levenshtein_distance
-pub fn edit_distance(s1: &str, s2: &str) -> f32 {
+pub fn edit_distance(s1: &str, s2: &str, len_weight: Option<f32>) -> f32 {
     let s1_len = s1.len();
     let s2_len = s2.len();
 
@@ -56,8 +56,8 @@ pub fn edit_distance(s1: &str, s2: &str) -> f32 {
         }
     }
     let len_diff = (s1_len).abs_diff(s2_len);
-    // LEN_WEIGHT
-    changes as f32 - (LEN_WEIGHT * len_diff as f32)
+    let len_weight = len_weight.unwrap_or(LEN_WEIGHT);
+    changes as f32 - (len_weight * len_diff as f32)
 }
 
 #[cfg(test)]
@@ -65,7 +65,7 @@ mod test {
     use super::*;
 
     fn run_test(s1: &str, s2: &str, expected: f32) {
-        assert_eq!(edit_distance(s1, s2), expected);
+        assert_eq!(edit_distance(s1, s2, Some(1f32)), expected);
     }
 
     #[test]
@@ -94,7 +94,7 @@ mod test {
     }
 
     #[test]
-    fn foo() {
-        run_test("one", "oned", 1.1);
+    fn one_added_letter_has_distance_one() {
+        run_test("one", "oned", 1.0);
     }
 }

@@ -7,6 +7,7 @@ mod reference;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
+/// Command line arguments and configuration.
 struct Cli {
     #[command(subcommand)]
     command: Command,
@@ -45,8 +46,7 @@ enum Command {
 fn execute(command: Command) {
     match command {
         Command::Reference { passage } => {
-            let input = passage.join(" ");
-            let reference = Reference::from_str(&input);
+            let reference = Reference::from_str(&passage.join(" "));
             match reference {
                 Ok(reference) => println!("{reference}"),
                 Err(err) => println!("there was an error looking up your reference: {err:?}"),
@@ -54,7 +54,9 @@ fn execute(command: Command) {
         }
         Command::Search { .. } => todo!(),
         Command::Index => todo!(),
-        Command::Download => todo!(),
+        Command::Download => {
+            println!("Downloading...");
+        }
     }
 }
 
